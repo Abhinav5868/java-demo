@@ -36,7 +36,7 @@ pipeline {
        stage('Push Docker Image') {
            steps {
                script {
-                   docker.withRegistry('https://registry.hub.docker.com', dckr_pat_6wE-n-mRC0QWm3-v60ityqKX-9Y) {
+                   docker.withRegistry('https://registry.hub.docker.com', 'dckr_pat_6wE-n-mRC0QWm3-v60ityqKX-9Y') {
                        docker.image("${abhinav5868}/demo-app:${jd1}").push()
                    }
                }
