@@ -11,5 +11,5 @@ public class ApplicationTests {
     public void testMessage() {
         Application app = new Application();
         assertEquals("Hello, CI/CD Pipeline!", app.getMessage());
-    }
+    }
 }
