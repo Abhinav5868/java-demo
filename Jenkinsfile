@@ -1,73 +1,69 @@
 pipeline {
     agent any
-    
+
     environment {
-        DOCKER_CREDENTIALS_ID = 'dckr_pat_6wE-n-mRC0QWm3-v60ityqKX-9Y' // Docker Hub credentials ID
-        DOCKER_USERNAME = 'abhinav5868'  // Docker Hub username
+        // Docker image details
+        DOCKER_IMAGE = "abhinav5868/java-demo"  // Replace with your Docker Hub repo
+        DOCKER_TAG = "latest"  // You can use a dynamic tag like commit hash if you prefer
+        GIT_REPO = "https://github.com/Abhinav5868/java-demo"  // Your GitHub repo
     }
-    
+
     stages {
         stage('Checkout') {
             steps {
-                checkout scm
+                // Checkout the code from your GitHub repository
+                echo 'Cloning repository...'
+                git url: "$GIT_REPO"
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
                 script {
-                    echo "Working Directory: ${pwd()}"
+                    // Build the Docker image using the Dockerfile from your GitHub repo
+                    echo 'Building Docker image...'
+                    sh 'docker build -t $DOCKER_IMAGE:$DOCKER_TAG .'
                 }
             }
         }
-        
-        stage('Build') {
-            steps {
-                sh 'mvn clean package -DskipTests'
-            }
-        }
-        
-        stage('Test') {
-            steps {
-                sh 'mvn test'
-            }
-        }
-        
-        stage('Build Docker Image') {
+
+        stage('Docker Login') {
             steps {
                 script {
-                    // Using Git commit hash for a unique image tag
-                    def imageTag = "${GIT_COMMIT}"
-                    echo "Building Docker Image: ${DOCKER_USERNAME}/demo-app:${imageTag}"
-                    docker.build("${DOCKER_USERNAME}/demo-app:${imageTag}")
-                }
-            }
-        }
-        
-        stage('Push Docker Image') {
-            steps {
-                script {
-                    def imageTag = "${GIT_COMMIT}"
-                    echo "Pushing Docker Image: ${DOCKER_USERNAME}/demo-app:${imageTag}"
-                    docker.withRegistry('https://registry.hub.docker.com', DOCKER_CREDENTIALS_ID) {
-                        docker.image("${DOCKER_USERNAME}/demo-app:${imageTag}").push()
+                    // Log in to Docker Hub using the stored Jenkins credentials
+                    echo 'Logging in to Docker Hub...'
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh 'echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin'
                     }
                 }
             }
         }
-        
-        stage('Deploy') {
+
+        stage('Push Image to Docker Hub') {
             steps {
                 script {
-                    // Check if docker-compose is available
-                    sh 'docker-compose -v'
-                    sh 'docker-compose up -d' // Start the containers
+                    // Push the built image to Docker Hub
+                    echo 'Pushing Docker image to Docker Hub...'
+                    sh 'docker push $DOCKER_IMAGE:$DOCKER_TAG'
+                }
+            }
+        }
+
+        stage('Cleanup') {
+            steps {
+                script {
+                    // Clean up the local Docker image after pushing
+                    echo 'Cleaning up Docker images...'
+                    sh 'docker rmi $DOCKER_IMAGE:$DOCKER_TAG'
                 }
             }
         }
     }
-    
+
     post {
         always {
-            script {
-                // Ensure docker-compose down is called to clean up the containers
-                sh 'docker-compose down || echo "docker-compose down failed"'
-            }
+            // Clean workspace after the pipeline run
+            cleanWs()
         }
     }
 }
