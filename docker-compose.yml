@@ -1,6 +1,20 @@
-version: '3'
+version: '3.8'
+
 services:
-  web:
-    image: "${abhinav5868}/demo-app:${imageTag}"  # Correctly quote and substitute environment variables
+  app:
+    build: .
+    image: abhinav5868/java-demo:latest  # The Docker image name and tag to use
+    container_name: java-demo-container
     ports:
-      - "8081:8080"  # Ensure proper spacing and no invalid characters
+      - "8081:8080"  # Assuming the app runs on port 8080, update as needed
+    environment:
+      - JAVA_OPTS=-Dspring.profiles.active=prod  # Example Java environment variable
+    networks:
+      - app-network
+    volumes:
+      - .:/app  # Mounts the current directory to /app inside the container
+      - /app/target  # Volume for the target folder (build output)
+
+networks:
+  app-network:
+    driver: bridge
